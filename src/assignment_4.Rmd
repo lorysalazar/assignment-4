@@ -1,0 +1,54 @@
+---
+title: "Assignment 4"
+author: "Lory Salazar"
+date: "11/17/2020"
+output: html_document
+---
+
+```{r setup, echo=TRUE, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(lubridate)
+```
+
+## Introduction
+intro here
+
+## Data and analyses
+data here
+
+## Exploratory findings
+
+Read in the dataset first, and then begin data wrangling.
+```{r}
+bonanza_hares <- read.csv(here("data","bonanza_hares.csv"))
+```
+
+### Annual juvenile hare trap counts plot
+
+First, I add a column to include the year. After, I use the count and filter functions to create a subset of the data that has counts for the juvenile hares. Lastly, I created a bar graph to plot the number of juvenile hares per year.
+```{r}
+bonanza_hares_dates <- bonanza_hares %>% 
+  mutate(date_updated = mdy(date)) %>% 
+  mutate(year = year(date_updated))
+
+age_count <- bonanza_hares_dates %>% 
+  count(age, year) %>% 
+  filter(age == "j")
+
+ggplot(data = age_count, aes(x = year, y = n)) +
+  geom_col() +
+  labs(x = "Time (years)",
+       y = "Number of juvenile hare trappings",
+       title = "Total number of juvenile hare trappings by year (Bonanza Creek)") +
+  scale_y_continuous(breaks = c(20,40,60,80,100,120,140)) +
+  theme_minimal() 
+```
+
+Explain/describe major takeaways here:
+
+
+### Juvenile hare weights plot
+
+
