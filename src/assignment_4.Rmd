@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 library(lubridate)
+library(effsize)
 ```
 
 ## Introduction
@@ -51,4 +52,122 @@ Explain/describe major takeaways here:
 
 ### Juvenile hare weights plot
 
+juvenile hare weights by sex and site
+
+```{r}
+juv_sex_hares <- bonanza_hares %>% 
+  filter(age == "j")
+
+ggplot(data = juv_sex_hares, aes(x = weight)) +
+  geom_histogram(aes(fill = sex)) +
+  facet_wrap(~grid) +
+  labs(x = "Weight (g)",
+       y = "Count of juvenile hares",
+       title = "Weight of juvenile hares by sex and site (Bonanza Creek)")
+```
+Describe main takeaway here
+
+### Comparing juvenile weight by sex
+
+```{r}
+juv_stats <- juv_sex_hares %>% 
+  group_by(sex) %>% 
+  summarise(mean = mean(weight, na.rm = TRUE),
+            sd = sd(weight, na.rm = TRUE),
+            sample_size = n()
+            )
+
+juv_stats
+```
+
+## Two-sample t-test and exploratory graphs
+Before running the t-test, I create a few exploratory graphs to explore the assumptions of the t-test.
+
+```{r}
+ggplot(data = juv_sex_hares, aes(x = weight)) +
+  geom_histogram() +
+  facet_wrap(~sex)
+
+ggplot(data = juv_sex_hares, aes(sample = weight)) +
+  geom_qq() +
+  facet_wrap(~sex)
+```
+
+
+First, I create vectors of the data of juvenile hares by sex and weight.
+
+```{r}
+hares_m <- juv_sex_hares %>% 
+  filter(sex == "m") %>% 
+  pull(weight)
+
+hares_f <- juv_sex_hares %>% 
+  filter(sex == "f") %>% 
+  pull(weight)
+```
+
+After creating the vectors, I use them to run a t-test. This is a two-sided t-test, in which we ask the question: 
+
+Is there a significant difference in weight between male and female snowshoe hares?
+
+```{r}
+hares_test <- t.test(hares_m, hares_f)
+hares_test
+
+cohen.d(hares_m, hares_f, na.rm = TRUE)
+```
+
+## Exploring the relationship between hind foot length and weight for juvenile hairs
+
+```{r}
+ggplot(data = juv_sex_hares, aes(x = hindft, y = weight)) +
+  geom_point() +
+  labs(x = "Hind foot length (mm)", 
+       y = "Weight (g)",
+       title = "Relationship between hind foot length and weight in\njuvenile snowshoe hares (Bonanza Creek)") +
+  theme_minimal()
+```
+DESCRIBE GRAPH
+
+Next, I perform linear regression ADD MORE DESCRIPTION HERE
+
+```{r}
+hares_lm <- lm(hindft ~ weight, data = juv_sex_hares)
+
+summary(hares_lm)
+```
+
+R^2 is 0.2959, which indicates that 30% of variance in hind foot length is explained by weight.
+
+Below, I use broom to tidy the table we got from the linear model and pull out the intercept and coefficient.
+```{r}
+hares_lm_tidy <- broom::tidy(hares_lm)
+
+hares_int <- hares_lm_tidy$estimate[1] 
+
+hares_coef <- hares_lm_tidy$estimate[2]
+
+hares_lm_out <- broom::glance(hares_lm) 
+hares_lm_out
+```
+
+Next, I plot the equation.
+
+```{r}
+ggplot(data = juv_sex_hares, aes(x = hindft, y = weight)) +
+  geom_point(size = 2) +
+  geom_smooth(method = "lm",
+              color = "red",
+              size = 0.5,
+              fill = "gray10",
+              alpha = 0.5) + # geom_smooth is to add a linear model to a scatterplot
+  theme_light() +
+  ggpubr::stat_regline_equation(label.x = 50, label.y = 4000)
+```
+
+```{r}
+hares_cor <- cor.test(juv_sex_hares$hindft, juv_sex_hares$weight)
+
+hares_cor
+```
 
