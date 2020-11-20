@@ -17,7 +17,6 @@ library(broom)
 ```
 
 ## 1. Introduction
-A 4 - 5 sentence "mini-introduction" to what this study is exploring, including basic background information about the subject, site and study (with citations as needed), and a brief overview of what is included in the exploratory report. You should probably do this last.
 
 This report explores the differences in snowshoe hare (*Lepus americanus*) measurements in Bonanza Creek Experimental Forest, observed in Fairbanks, Alaska (Kielland et al. 2017). Snowshoe hares are prey species with fluctuating populations and are found in boreal forests. In this report, we look at weight (g) and hind foot length (mm) and differences across sex and site of juvenile snowshoe hares. Along with creating exploratory graphs, we perform a two-sample t-test and simple linear regression for comparing the variables.
 
@@ -40,15 +39,19 @@ bonanza_hares <- read.csv(here("data","bonanza_hares.csv"))
 First, we count the total number of juvenile snowshoe hare trappings during each year of the study. Further variables, like sex and site, are not considered here. We are getting an overall look at the total counts of juvenile hares.
 
 ```{r}
-# I begin by wrangling the data. First, I add a column to include the year. Next, I use the count and filter functions to create a subset of the data that has counts for the juvenile hares. Lastly, I created a bar graph to plot the number of juvenile hares per year.
+# I begin by wrangling the data. First, I add a changed the dates to be recogniezd in mdy date format, and then I added a column to include the year.
 
 bonanza_hares_dates <- bonanza_hares %>% 
   mutate(date_updated = mdy(date)) %>% 
   mutate(year = year(date_updated))
 
+# Next, I use the count and filter functions to create a subset of the data that has counts for only the juvenile hares.
+
 age_count <- bonanza_hares_dates %>% 
   count(age, year) %>% 
   filter(age == "j")
+
+#  Lastly, I created a bar graph to plot the number of juvenile hares per year.
 
 ggplot(data = age_count, aes(x = year, y = n)) +
   geom_col() +
@@ -67,8 +70,15 @@ The number of juvenile hare trapping seems to have, generally, decreased over ti
 ### Visualizing juvenile hare weights by sex and site
 
 ```{r}
+# First, I created a subset of the data to only include juvenile hares.
+
 juv_sex_hares <- bonanza_hares %>% 
   filter(age == "j")
+
+# Next, I used ggplot to create a beeswarm plot comparing sex and weight of the hares. I added a boxplot on top of the beeswarm to get the summary statistics. The resulting plot is faceted by site. 
+
+grid.labs <- c("Black Spruce", "Mature", "Riparian")
+names(grid.labs)<- c("bonbs", "bonmat", "bonrip")
 
 ggplot(data = juv_sex_hares, aes(x = sex, y = weight)) +
   geom_beeswarm(aes(color = sex), alpha = 0.5, size = 2) +
@@ -80,7 +90,7 @@ ggplot(data = juv_sex_hares, aes(x = sex, y = weight)) +
                size=4, 
                color="black", 
                fill="black") +
-  facet_wrap(~grid) +
+  facet_wrap(~grid, labeller = labeller(grid=grid.labs)) +
   labs(x = "Sex",
        y = "Weight (g)",
        title = "Weight of juvenile hares by sex and site (Bonanza Creek, 1999-2012)") +
@@ -96,12 +106,16 @@ At each site, the mean weight for male snowshoe hares is higher than that of fem
 **Table 1.** Descriptive statistics (mean, standard deviation, and sample size) for juvenile snowshoe hares, grouped by sex. Data: Kielland et al. (2017).
 
 ```{r}
+# I create a summary table to show the summary statistics, grouped by sex. 
+
 juv_stats <- juv_sex_hares %>% 
   group_by(sex) %>% 
   summarise(mean = round(mean(weight, na.rm = TRUE),2),
             sd = round(sd(weight, na.rm = TRUE),2),
             sample_size = n()
             )
+
+#I use the kable package to clean the table up. 
 
 juv_stats %>% 
    kable(col.names = c("Sex", "Mean (g)", "Standard deviation (g)", "Sample size")) %>% 
@@ -120,7 +134,7 @@ ggplot(data = juv_sex_hares, aes(sample = weight)) +
   geom_qq() +
   facet_wrap(~sex)
 
-#Next, I create vectors of the data of juvenile hares by sex and weight so that I can use them to run a t-test.
+#Next, I create vectors of the data of juvenile hares by sex and weight so that I can use them to run a t-test. I used filter and pull here to only include by sex and weight.
 
 hares_m <- juv_sex_hares %>% 
   filter(sex == "m") %>% 
@@ -130,11 +144,12 @@ hares_f <- juv_sex_hares %>%
   filter(sex == "f") %>% 
   pull(weight)
 
-# After creating the vectors, I use them to run a t-test. This is a two-sided t-test, in which we ask the question: 
-# Is there a significant difference in weight between male and female juvenile snowshoe hares?
+# After creating the vectors, I use them to run a t-test. This is a two-sided t-test, in which we ask the question: is there a significant difference in weight between male and female juvenile snowshoe hares?
 
 hares_test <- t.test(hares_m, hares_f)
 hares_test
+
+#I used the cohen's d. function to get the effect size.
 
 cohen.d(hares_m, hares_f, na.rm = TRUE)
 
@@ -148,6 +163,8 @@ Weight (in grams) was compared for snowshoe hares of female, male, and unconfirm
 To begin, the relationship between juvenile snowshoe hare hind foot length and weight was explored across sex and site. 
 
 ```{r}
+# I use ggplot here to create a simple scatterplot to look at the relationship between the hind foot length and weight.
+
 ggplot(data = juv_sex_hares, aes(x = hindft, y = weight)) +
   geom_point() +
   labs(x = "Hind foot length (mm)", 
@@ -173,7 +190,7 @@ hares_lm_tidy <- broom::tidy(hares_lm)
 The relationship was further explored by performing simple linear regression. 
 
 ```{r}
-# Next, I create a plot and add the equation. 
+# Next, I create a scatterplot and add the equation and the regression line. 
 
 ggplot(data = juv_sex_hares, aes(x = hindft, y = weight)) +
   geom_point(size = 2) +
@@ -188,12 +205,14 @@ ggplot(data = juv_sex_hares, aes(x = hindft, y = weight)) +
 ```
 
 ```{r, include = FALSE}
+# Here, I perform the correlation test to find Pearson's r.
+
 hares_cor <- cor.test(juv_sex_hares$hindft, juv_sex_hares$weight)
 hares_cor_tidy <- tidy(hares_cor)
 ```
 **Figure 4.** Relationship between hind foot length (mm) and weight (g) for juvenile snowshoe hares. The individual points represent individual juvenile snowshoe hares measurements. Linear model summary: $\beta$ = 0.0314 g mm^-1^, p-value < 0.001, R^2^ = 0.2925, Pearson's *r* = 0.547. Data: Kielland et al. (2017).
 
-Simple linear regression revealed that hind foot length significantly predicts weight of juvenile snowshoe hares (p < 0.001, R^2^ = 0.2925), so that 30% of variance in hind foot length is explained by weight. The average slope is $\beta$ = 0.0314g mm^-1^, meaning that for every 1 mm increase in hind foot length, we expect the weight to increase by 0.0314 mm. Hind foot length and weight are moderately positively correlated, with a Pearson's *r* of 0.547. Because the correlation is not strong, in the future we may want to investigate the influence other variables, like sex and site, have on hind foot length and weight's relationship. 
+Simple linear regression revealed that hind foot length significantly predicts weight of juvenile snowshoe hares (p < 0.001, R^2^ = 0.2925), so that 30% of variance in hind foot length is explained by weight. The average slope is $\beta$ = 0.0314g mm^-1^, meaning that for every 1 mm increase in hind foot length, we expect the weight to increase by 0.0314 g. Hind foot length and weight are moderately positively correlated, with a Pearson's *r* of 0.547. Because the correlation is not strong, in the future we may want to investigate the influence other variables, like sex and site, have on hind foot length and weight's relationship. 
 
 ## Summary
 Exploratory data analysis of the snowshoe hare data revealed the following findings:
@@ -204,6 +223,7 @@ Exploratory data analysis of the snowshoe hare data revealed the following findi
 - Hind foot length and weight are moderately correlated
 
 Next steps:
+
 - Standardize juvenile hare population by considering days per year that the study is conducted
 - Conduct linear regression to investigate influence of sex and site on the relationship between hind foot length and weight
 
